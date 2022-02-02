@@ -1,1 +1,1 @@
-from .fileprocessing import extract_mibig
+from .fileprocessing import scan_mibig_files, download_mibig, extract_mibig

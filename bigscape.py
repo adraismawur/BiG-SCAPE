@@ -38,6 +38,7 @@ import os
 from distutils import dir_util
 
 from sys import version_info
+import sys
 
 # refactored imports
 from src import big_scape
@@ -81,7 +82,12 @@ if __name__ == "__main__":
     ### Step 1: Get all the input files. Write extract sequence and write fasta if necessary
     print("\n\n   - - Processing input files - -")
 
-    mibig.extract_mibig(RUN)
+    # check if relevant mibig files already exist
+    if RUN.mibig.use_mibig and not mibig.scan_mibig_files(RUN):
+        print("\nDownloading necessary MIBiG files")
+        mibig.download_mibig(RUN)
+        sys.exit()
+        mibig.extract_mibig(RUN)
 
     # there are three steps where BiG-SCAPE will import GBK files:
     # 1. mibig

@@ -3,14 +3,96 @@
 Author: Arjan Draisma
 """
 
+import io
 import os
 import sys
 import zipfile
+import gzip
+import tarfile
+import urllib.request
 from glob import glob
+
 
 import src.gbk as gbk
 import src.big_scape as big_scape
 
+def scan_mibig_files(run: big_scape.Run):
+    """Checks if the mibig files currently exist in the directory specified in the command line
+    arugments
+
+    inputs:
+        run - The run details object relevant to this run
+    """
+    base_url = "https://dl.secondarymetabolites.org/mibig/mibig_gbk_"
+    if run.options.mibig21:
+        file_name = "MIBiG_2.1_final"
+    elif run.options.mibig14:
+        file_name = "MIBiG_1.4_final"
+    else:
+        file_name = "MIBiG_1.3_final"
+
+    mibig_path = run.options.mibig_path
+
+    full_path = os.path.join(mibig_path, file_name)
+
+    # TODO: check if all files actually exist
+    return os.path.exists(full_path)
+
+        
+
+
+def download_mibig(run: big_scape.Run):
+    """Downloads the mibig files specified in command line parameters to the mibig folder specified
+    in the command line parameters
+    
+    inputs:
+        run - The run details object relevant to this run
+    """
+    # return if we're not using mibig, just so we don't waste time on downloading in strange cases
+    if not run.mibig.use_mibig:
+        return
+    
+    # double check if the files are already there
+    # return early if so
+    if scan_mibig_files(run):
+        return
+
+    base_url = "https://dl.secondarymetabolites.org/mibig/mibig_gbk_"
+    if run.options.mibig21:
+        # TODO: download snapshot of mibig
+        # TODO: download gbks from snapshot
+        # TODO: rename this option to snapshot
+        print("\n\n\nCannot download mibig 2.1 files. these should have been included in the \
+        BiG-SCAPE repository")
+    elif run.options.mibig14:
+        file_name = "MIBiG_1.4_final"
+        mibig_url = base_url + "1.4.tar.gz"
+    else:
+        file_name = "MIBiG_1.3_final"
+        mibig_url = base_url + "1.3.tar.gz"
+
+    mibig_path = run.options.mibig_path
+
+    full_path = os.path.join(mibig_path, file_name)
+
+    # mibig can be downloaded as gzip, so let's see if we can extract while downloading
+    with urllib.request.urlopen(mibig_url) as response:
+        with gzip.GzipFile(fileobj=response) as uncompressed:
+            tar_file = uncompressed.read()
+    
+            tar = tarfile.open(fileobj=io.BytesIO(tar_file))
+
+            # some files should be excluded, we do this here
+            files = tar.getmembers()
+            extract_files = []
+            for file in files:
+                # skip anything with a dot at the start
+                if file.name.startswith("."):
+                    continue
+
+                extract_files.append(file)
+
+            tar.extractall(full_path, extract_files)
 
 
 def extract_mibig(run: big_scape.Run):
